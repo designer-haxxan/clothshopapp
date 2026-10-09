@@ -6,6 +6,7 @@ import { esc } from './core/utils.js';
 import { openDB } from './db/idb.js';
 import * as Auth from './services/auth.js';
 import * as Catalog from './services/catalog.js';
+import { applyLang, isUrdu, setLang, translateTree, watchTranslations } from './i18n/i18n.js';
 
 const $ = window.jQuery;
 
@@ -199,6 +200,7 @@ $('#toggle-pw').on('click', () => {
 });
 $('#logout-btn').on('click', () => doLogout(false));
 $('#install-btn').on('click', promptInstall);
+$(document).on('click', '[data-lang-toggle]', () => setLang(isUrdu() ? 'en' : 'ur'));
 window.addEventListener('hashchange', route);
 document.addEventListener('settings:changed', () => { applyTheme(); if (Auth.user()) $('#brand-name').text(getSettings().business.name || CONFIG.APP_NAME); });
 document.addEventListener('auth:changed', () => { if (Auth.user()) buildMenu(); });
@@ -207,6 +209,9 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', a
 // ---------- Boot ----------
 (async function boot() {
   applyTheme();
+  applyLang();
+  translateTree(document.body);
+  watchTranslations();
   registerSW();
   if (!window.jQuery || !window.bootstrap) return fatal('Required libraries failed to load. Connect to the internet once so the app can be cached for offline use.');
   try { await openDB(); } catch (e) { return fatal('Could not open the local database: ' + (e.message || e)); }

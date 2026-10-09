@@ -2,6 +2,7 @@
 import * as idb from '../db/idb.js';
 import * as UI from '../core/ui.js';
 import { esc, fmtNum, fmtQty, fmtDate, fmtDateTime, today, monthStart, uuid, num, round3, debounce, AppError } from '../core/utils.js';
+import { fmtStock } from '../core/cloth.js';
 import { money, dateFilter, bindDateFilter, pager } from '../core/views.js';
 import * as Auth from '../services/auth.js';
 import * as Catalog from '../services/catalog.js';
@@ -37,7 +38,7 @@ async function renderCurrent(el) {
       .sort((a, b) => a.name.localeCompare(b.name));
     pager($el.find('.list'), list, (p) => `<a class="list-row" href="#/stock/${encodeURIComponent(p.id)}">
       <div class="main"><div class="title">${esc(p.name)}</div><div class="sub">Min ${fmtQty(p.minStock || 0)} · value ${fmtNum(Math.max(0, p.stock) * (p.purchasePrice || 0))}</div></div>
-      <div class="end"><span class="badge fs-6 ${p.stock <= 0 ? 'text-bg-danger' : p.stock <= (p.minStock || 0) ? 'text-bg-warning' : 'text-bg-light border'}">${fmtQty(p.stock)} ${esc(p.unit)}</span></div></a>`,
+      <div class="end"><span class="badge fs-6 ${p.stock <= 0 ? 'text-bg-danger' : p.stock <= (p.minStock || 0) ? 'text-bg-warning' : 'text-bg-light border'}">${esc(fmtStock(p))}</span></div></a>`,
     60, UI.emptyState('No products match', 'boxes'));
   };
   draw();
@@ -51,7 +52,7 @@ async function renderLedger(el, productId) {
   if (!p) { $el.html(UI.pageHeader('Stock ledger', '', '#/stock') + UI.emptyState('Product not found', 'x-circle')); return; }
   let from = monthStart(); let to = today();
   $el.html(UI.pageHeader(p.name, Auth.can('stock.adjust') && p.trackStock !== false ? `<a class="btn btn-primary btn-sm" href="#/stock/adjust/${encodeURIComponent(p.id)}"><i class="bi bi-sliders"></i> Adjust</a>` : '', '#/stock') + `
-    <div class="card stat-card mb-3"><div class="card-body"><div class="stat-label">Current stock</div><div class="stat-value">${p.trackStock === false ? 'Not tracked' : `${fmtQty(p.stock)} ${esc(p.unit)}`}</div></div></div>
+    <div class="card stat-card mb-3"><div class="card-body"><div class="stat-label">Current stock</div><div class="stat-value">${p.trackStock === false ? 'Not tracked' : esc(fmtStock(p))}</div></div></div>
     ${dateFilter(from, to)}<div class="card"><div class="card-body p-0 ledger"></div></div>`);
   const load = async () => {
     const [before, rows] = await idb.read(['stockMoves'], (t) => Promise.all([

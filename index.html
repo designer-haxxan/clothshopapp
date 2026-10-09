@@ -3,27 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="Offline-first point of sale with sales, purchases, stock, accounts and reports.">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="description" content="Cloth shop POS: sell by thaan, metre or box, barcodes, khata ledger, stock and reports. Urdu and English.">
+  <meta name="theme-color" content="#7e1f3d">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src 'self' https://eposwala.com https://cdn.jsdelivr.net; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="SaleAPP POS">
+  <meta name="apple-mobile-web-app-title" content="ThaanPOS">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link id="bs-css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <script src="js/i18n/boot.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.1.0/index.css">
   <link rel="stylesheet" href="css/app.css">
-  <title>SaleAPP POS</title>
+  <link rel="stylesheet" href="css/cloth.css">
+  <title>ThaanPOS</title>
 </head>
 <body>
   <!-- Splash / loading screen -->
   <div id="splash">
     <div class="splash-logo"><img src="icons/icon-192.png" alt=""></div>
-    <div class="splash-name mt-3">SaleAPP POS</div>
+    <div class="splash-name mt-3">ThaanPOS</div>
     <div class="splash-bar" role="status"><span class="visually-hidden">Loading</span></div>
     <div id="splash-error" class="text-danger small mt-3 px-4 text-center"></div>
   </div>
@@ -31,59 +33,85 @@
   <!-- Login -->
   <div id="view-login" class="d-none">
     <div class="auth">
-      <div class="auth-bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><div class="grid-lines"></div></div>
+      <div class="auth-bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><div class="grid-lines"></div><div class="weave"></div></div>
       <div class="auth-inner">
         <section class="auth-hero">
           <div class="brand-row">
             <div class="brand-mark"><img src="icons/icon-192.png" alt=""></div>
-            <div><div class="name">SaleAPP POS</div><div class="tag">Point of Sale · Inventory · Accounts</div></div>
+            <div><div class="name">ThaanPOS</div><div class="tag">Point of Sale · Inventory · Accounts</div></div>
           </div>
-          <h1>Run your whole business <span class="grad">from one app.</span></h1>
-          <p class="lead-sm">Sell, buy, track stock and keep your accounts — for any shop, wholesaler or distributor. Works even without internet.</p>
+          <h1>Run your cloth shop <span class="grad">from one app.</span></h1>
+          <p class="lead-sm">Sell by thaan, metre or box. Print barcode labels, keep every khata, and see your stock in one place — in Urdu or English. Works without internet.</p>
           <ul class="feature-chips">
+            <li><i class="bi bi-rulers"></i>Thaan &amp; metre sales</li>
+            <li><i class="bi bi-box-seam"></i>Box &amp; pack retail</li>
+            <li><i class="bi bi-upc-scan"></i>Barcode labels</li>
+            <li><i class="bi bi-journal-check"></i>Khata (credit) ledger</li>
             <li><i class="bi bi-wifi-off"></i>Works offline</li>
-            <li><i class="bi bi-box-seam"></i>Inventory</li>
-            <li><i class="bi bi-journal-check"></i>Accounts &amp; ledgers</li>
-            <li><i class="bi bi-upc-scan"></i>Barcode</li>
-            <li><i class="bi bi-printer"></i>Bluetooth receipts</li>
-            <li><i class="bi bi-translate"></i><span class="ur-chip">اردو رسید</span></li>
+            <li><i class="bi bi-translate"></i><span class="ur-chip">اردو</span></li>
           </ul>
           <div class="hero-art" aria-hidden="true">
-            <svg viewBox="0 0 520 330" xmlns="http://www.w3.org/2000/svg">
+            <svg viewBox="0 0 520 340" xmlns="http://www.w3.org/2000/svg">
               <defs>
-                <linearGradient id="hg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".22"/><stop offset="1" stop-color="#ffffff" stop-opacity=".06"/></linearGradient>
-                <linearGradient id="hg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a5b4fc"/><stop offset="1" stop-color="#6366f1"/></linearGradient>
-                <linearGradient id="hg3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0abfc"/><stop offset="1" stop-color="#c026d3"/></linearGradient>
+                <linearGradient id="roll-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d6a24a"/><stop offset=".55" stop-color="#8f2446"/><stop offset="1" stop-color="#4a0f22"/></linearGradient>
+                <linearGradient id="roll-face" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7e7c4"/><stop offset="1" stop-color="#e9c98e"/></linearGradient>
+                <linearGradient id="tag-g" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff7e6"/><stop offset="1" stop-color="#fde7c2"/></linearGradient>
+                <clipPath id="fabric-clip"><rect x="150" y="150" width="300" height="86" rx="6"/></clipPath>
               </defs>
+              <!-- counter -->
+              <rect x="30" y="278" width="460" height="22" rx="11" fill="rgba(255,255,255,.12)"/>
+              <!-- fabric unrolling: colour bands run across the cloth -->
+              <g clip-path="url(#fabric-clip)">
+                <g class="bands">
+                  <rect x="140" y="150" width="60" height="86" fill="#8f2446"/><rect x="200" y="150" width="30" height="86" fill="#d6a24a"/>
+                  <rect x="230" y="150" width="60" height="86" fill="#5b1530"/><rect x="290" y="150" width="30" height="86" fill="#f0c879"/>
+                  <rect x="320" y="150" width="60" height="86" fill="#8f2446"/><rect x="380" y="150" width="30" height="86" fill="#d6a24a"/>
+                  <rect x="410" y="150" width="60" height="86" fill="#5b1530"/><rect x="470" y="150" width="60" height="86" fill="#f0c879"/>
+                  <rect x="530" y="150" width="60" height="86" fill="#8f2446"/><rect x="590" y="150" width="30" height="86" fill="#d6a24a"/><rect x="620" y="150" width="60" height="86" fill="#5b1530"/>
+                </g>
+              </g>
+              <g class="weft" opacity=".35" stroke="#fff" stroke-width="1">
+                <path d="M150 166 H450 M150 182 H450 M150 198 H450 M150 214 H450 M150 230 H450"/>
+              </g>
+              <!-- roll (front face) -->
+              <g class="roll-spin">
+                <circle cx="118" cy="194" r="78" fill="url(#roll-g)"/>
+                <circle cx="118" cy="194" r="62" fill="url(#roll-face)" opacity=".92"/>
+                <circle cx="118" cy="194" r="48" fill="none" stroke="#b07a2a" stroke-width="3" stroke-dasharray="10 8"/>
+                <circle cx="118" cy="194" r="34" fill="none" stroke="#8f2446" stroke-width="2.5" stroke-dasharray="6 6"/>
+                <circle cx="118" cy="194" r="14" fill="#4a0f22"/>
+              </g>
+              <!-- measuring tape -->
+              <g class="tape">
+                <rect x="150" y="248" width="300" height="18" rx="4" fill="#fbbf24"/>
+                <path d="M160 248 v7 M175 248 v10 M190 248 v7 M205 248 v10 M220 248 v7 M235 248 v10 M250 248 v7 M265 248 v10 M280 248 v7 M295 248 v10 M310 248 v7 M325 248 v10 M340 248 v7 M355 248 v10 M370 248 v7 M385 248 v10 M400 248 v7 M415 248 v10 M430 248 v7 M445 248 v10" stroke="#78350f" stroke-width="1.5"/>
+                <text x="175" y="262" font-size="9" font-weight="700" fill="#78350f">1</text>
+                <text x="250" y="262" font-size="9" font-weight="700" fill="#78350f">5</text>
+                <text x="325" y="262" font-size="9" font-weight="700" fill="#78350f">10</text>
+              </g>
+              <!-- price / thaan tag -->
               <g class="float-a">
-                <rect x="40" y="30" width="330" height="220" rx="22" fill="url(#hg1)" stroke="rgba(255,255,255,.25)"/>
-                <circle cx="66" cy="54" r="5" fill="#f87171"/><circle cx="82" cy="54" r="5" fill="#fbbf24"/><circle cx="98" cy="54" r="5" fill="#34d399"/>
-                <rect x="64" y="78" width="120" height="12" rx="6" fill="rgba(255,255,255,.55)"/>
-                <rect x="64" y="98" width="80" height="22" rx="8" fill="#fff"/>
-                <rect class="bar" x="70"  y="170" width="26" height="54"  rx="6" fill="url(#hg2)" style="animation-delay:.1s"/>
-                <rect class="bar" x="110" y="150" width="26" height="74"  rx="6" fill="url(#hg2)" style="animation-delay:.2s"/>
-                <rect class="bar" x="150" y="180" width="26" height="44"  rx="6" fill="url(#hg2)" style="animation-delay:.3s"/>
-                <rect class="bar" x="190" y="130" width="26" height="94"  rx="6" fill="url(#hg2)" style="animation-delay:.4s"/>
-                <rect class="bar" x="230" y="145" width="26" height="79"  rx="6" fill="url(#hg2)" style="animation-delay:.5s"/>
-                <rect class="bar" x="270" y="110" width="26" height="114" rx="6" fill="url(#hg3)" style="animation-delay:.6s"/>
-                <rect class="bar" x="310" y="125" width="26" height="99"  rx="6" fill="url(#hg2)" style="animation-delay:.7s"/>
+                <path d="M378 40 h104 a10 10 0 0 1 10 10 v70 a10 10 0 0 1 -10 10 h-104 l-18 -22 l18 -22 z" fill="url(#tag-g)" stroke="#d6a24a" stroke-width="2"/>
+                <circle cx="388" cy="62" r="4" fill="#fff" stroke="#b07a2a"/>
+                <text x="404" y="60" font-size="11" font-weight="700" fill="#4a0f22">Thaan</text>
+                <text x="404" y="78" font-size="16" font-weight="800" fill="#8f2446">Rs 24,000</text>
+                <g transform="translate(404 86)" fill="#2a1a10">
+                  <rect width="2" height="14"/><rect x="4" width="1" height="14"/><rect x="7" width="3" height="14"/><rect x="12" width="1" height="14"/><rect x="15" width="2" height="14"/><rect x="20" width="1" height="14"/><rect x="23" width="3" height="14"/><rect x="29" width="2" height="14"/><rect x="34" width="1" height="14"/><rect x="38" width="3" height="14"/><rect x="44" width="2" height="14"/><rect x="49" width="1" height="14"/>
+                </g>
               </g>
+              <!-- box pack -->
               <g class="float-b">
-                <path d="M392 70 h96 a10 10 0 0 1 10 10 v170 l-12 -8 l-12 8 l-12 -8 l-12 8 l-12 -8 l-12 8 l-12 -8 l-12 8 l-12 -8 V80 a10 10 0 0 1 10 -10z" fill="#fff"/>
-                <rect x="410" y="92" width="64" height="9" rx="4.5" fill="#6366f1"/>
-                <rect x="404" y="114" width="76" height="6" rx="3" fill="#e5e7eb"/><rect x="404" y="128" width="58" height="6" rx="3" fill="#e5e7eb"/>
-                <rect x="404" y="142" width="70" height="6" rx="3" fill="#e5e7eb"/><rect x="404" y="156" width="48" height="6" rx="3" fill="#e5e7eb"/>
-                <rect x="404" y="178" width="76" height="2" fill="#c7d2fe"/>
-                <rect x="404" y="190" width="40" height="10" rx="5" fill="#111827"/><rect x="452" y="190" width="28" height="10" rx="5" fill="#16a34a"/>
-                <g transform="translate(410 208)"><rect width="2" height="18" fill="#111827"/><rect x="5" width="1" height="18" fill="#111827"/><rect x="9" width="3" height="18" fill="#111827"/><rect x="15" width="1" height="18" fill="#111827"/><rect x="19" width="2" height="18" fill="#111827"/><rect x="24" width="1" height="18" fill="#111827"/><rect x="28" width="3" height="18" fill="#111827"/><rect x="34" width="2" height="18" fill="#111827"/><rect x="39" width="1" height="18" fill="#111827"/><rect x="43" width="3" height="18" fill="#111827"/><rect x="49" width="2" height="18" fill="#111827"/><rect x="54" width="1" height="18" fill="#111827"/><rect x="58" width="3" height="18" fill="#111827"/></g>
+                <rect x="368" y="200" width="104" height="72" rx="8" fill="#a33a5c"/>
+                <rect x="368" y="200" width="104" height="18" rx="6" fill="#c25a7c"/>
+                <rect x="412" y="200" width="16" height="72" fill="#d6a24a" opacity=".9"/>
+                <text x="420" y="256" font-size="11" font-weight="800" fill="#fff" text-anchor="middle">BOX</text>
               </g>
-              <g class="float-b"><circle cx="34" cy="272" r="26" fill="#fbbf24"/><circle cx="34" cy="272" r="18" fill="none" stroke="#fde68a" stroke-width="3"/><text x="34" y="279" text-anchor="middle" font-size="18" font-weight="800" fill="#92400e">Rs</text></g>
-              <g class="float-a"><rect x="300" y="262" width="62" height="50" rx="8" fill="#22d3ee"/><path d="M300 278 h62" stroke="#0e7490" stroke-width="3"/><rect x="322" y="262" width="18" height="16" fill="#67e8f9"/></g>
             </svg>
           </div>
         </section>
 
         <section class="auth-card" aria-labelledby="login-title">
+          <div class="d-flex justify-content-end mb-1"><button type="button" class="btn btn-sm btn-outline-secondary lang-toggle" data-lang-toggle>اردو</button></div>
           <h2 id="login-title">Welcome back</h2>
           <div class="sub">Sign in to your shop to continue</div>
           <div id="login-notice" class="alert alert-warning small d-none"></div>
@@ -103,7 +131,7 @@
             <button type="submit" class="btn btn-grad btn-login w-100" id="login-btn"><span>Sign in</span><i class="bi bi-arrow-right"></i></button>
           </form>
           <div class="auth-foot" id="login-conn"></div>
-          <div class="text-center small mt-2" style="color:#8a8fa3">Internet is needed to sign in. After that the app works offline.</div>
+          <div class="text-center small mt-2 auth-note-dark">Internet is needed to sign in. After that the app works offline.</div>
         </section>
       </div>
     </div>
@@ -112,13 +140,14 @@
   <!-- Application -->
   <div id="view-app" class="d-none">
     <aside id="sidebar" class="d-none d-lg-flex flex-column">
-      <div class="sidebar-brand"><div class="logo"><img src="icons/icon-192.png" alt=""></div> <span id="brand-name">SaleAPP POS</span></div>
+      <div class="sidebar-brand"><div class="logo"><img src="icons/icon-192.png" alt=""></div> <span id="brand-name">ThaanPOS</span></div>
       <nav class="nav flex-column flex-grow-1 overflow-auto nav-menu" aria-label="Main"></nav>
     </aside>
     <div class="app-main">
       <header class="app-topbar">
         <button class="btn btn-link text-body d-lg-none px-1" data-bs-toggle="offcanvas" data-bs-target="#menu-offcanvas" aria-label="Menu"><i class="bi bi-list fs-4"></i></button>
         <div class="fw-semibold text-truncate flex-grow-1" id="topbar-title">Dashboard</div>
+        <button type="button" class="btn btn-sm btn-outline-secondary lang-toggle" data-lang-toggle title="Language">اردو</button>
         <span id="conn-badge" class="badge rounded-pill conn-online" title="Connection status"><i class="bi bi-wifi"></i> <span>Online</span></span>
         <div class="dropdown">
           <button class="avatar-btn ms-1" id="user-avatar" data-bs-toggle="dropdown" aria-label="Account"><i class="bi bi-person"></i></button>

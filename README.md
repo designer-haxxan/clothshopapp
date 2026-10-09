@@ -1,9 +1,20 @@
-# SaleAPP POS
+# ThaanPOS — Cloth shop POS (Urdu & English)
 
-Offline-first, mobile-first Point of Sale as a static PWA (no build step).
-HTML5 · ES modules · jQuery · Bootstrap 5 · Bootstrap Icons · IndexedDB · Service Worker · eposwala login API.
+Offline-first, mobile-first point of sale for cloth shops in Pakistan, as a static PWA (no build step).
+HTML5 · ES modules · jQuery · Bootstrap 5 (LTR/RTL) · Bootstrap Icons · JsBarcode · IndexedDB · Service Worker · eposwala login API.
 
-## Features
+## Cloth shop features
+
+- **Sell by thaan, metre or box/pack.** A product is stocked and costed in its base unit (metre, or piece for packed goods). Optional sale units sit on top: a **thaan** (set its length in metres) and a **box / pack** (set its size). Stock shows as `4 thaan + 17.5 m` or `2 box`. A sale line keeps the unit it was sold in, so the receipt reads `2.5 m × 1,400` or `1 box × 3,600`.
+- **Unit chip in the cart.** Tap the chip on a line to switch between metre, thaan and box; the line re-prices to that unit. Each product has a *default sale unit* used when it is scanned or tapped.
+- **Fabric details.** Design number, colour, fabric, width and category. All of them are searchable.
+- **Barcode labels.** Code 128 labels (50×25, 40×30 or 58×40 mm) show the name, design, colour, barcode and price. Print one product from its screen, or every product in the current list from the Products screen. Labels use the browser print dialog, so any printer works. The barcode library is cached for offline use.
+- **Urdu and English.** Use the **اردو / English** button in the top bar or on the sign-in screen. Urdu switches the layout to right-to-left and uses the Urdu font for Urdu text. Dictionary: [js/i18n/ur.js](js/i18n/ur.js). Keys are the English strings, so add a line there to translate a new string. Numbers and product names are never translated.
+- **Khata and ledgers, stock, returns, reports and backup** are unchanged, and work offline.
+
+Data model note: products gained `design`, `color`, `fabric`, `width`, `thaanLength`, `packSize`, `packName`, `thaanRate`, `boxRate` and `defaultUnit`. Sale and purchase items gained `sellQty`, `sellUnit`, `unitKey` and `factor`. `qty` on an item is always in base units, so stock, cost and profit reports did not need to change. Old records work without migration.
+
+## Features (general POS)
 
 - **POS sales**: search, camera/hardware barcode scan, cart with qty/rate/discount, bill discount, tax, cash/bank/credit/partial payments, change calculation, hold/resume, edit, void, returns, receipt printing. The cart survives page refresh.
 - **Purchases**: suppliers, purchase rate, discount, paid/remaining, edit, void, returns. Can update product cost from the latest purchase.
@@ -24,10 +35,12 @@ service-worker.js       Precache of shell + CDN libs; cache-first; /api/ request
 css/app.css
 js/app.js               Boot, auth gate + session expiry, router (lazy-loaded modules), connection badge, SW updates
 js/config.js            Login API base URL, support phone, app/schema/backup versions
-js/core/                utils, settings (LocalStorage), UI helpers, shared views
+css/cloth.css           cloth-shop styles, hero animation, barcode labels, Urdu (RTL) adjustments (loaded after app.css)
+js/core/                utils, settings (LocalStorage), UI helpers, shared views, cloth (thaan/box units, stock formatting)
+js/i18n/                i18n (t(), DOM translator, language switch), ur (Urdu dictionary), boot (sets direction before first paint)
 js/db/                  IndexedDB wrapper (atomic multi-store transactions) + schema
 js/services/            auth, catalog (in-memory search index), posting engine, backup
-js/modules/             dashboard, pos (sale + purchase), documents, products, stock, parties, vouchers, accounts, settings, backup
+js/modules/             dashboard, pos (sale + purchase), documents, products, labels (barcode labels), stock, parties, vouchers, accounts, settings, backup
 js/reports/             reports
 js/printer/             ESC/POS encoder, receipt builder, Bluetooth/RawBT/browser printing
 js/scanner/             camera scanning + keyboard-wedge scanner detection

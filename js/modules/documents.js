@@ -2,6 +2,7 @@
 import * as idb from '../db/idb.js';
 import * as UI from '../core/ui.js';
 import { esc, fmtNum, fmtQty, fmtDate, fmtDateTime, fmtTime, today, uuid, num, round2, AppError, debounce } from '../core/utils.js';
+import { fmtSold } from '../core/cloth.js';
 import { money, dateFilter, bindDateFilter, pager } from '../core/views.js';
 import * as Auth from '../services/auth.js';
 import * as Posting from '../services/posting.js';
@@ -87,7 +88,7 @@ async function renderDoc(el, kind, id) {
           </div>
           <div class="table-responsive"><table class="table table-sm table-report mb-0">
             <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Disc</th><th class="num">Amount</th></tr></thead>
-            <tbody>${items.map((i) => `<tr><td>${esc(i.name)}${i.sku ? `<div class="small text-body-secondary">${esc(i.sku)}</div>` : ''}</td><td class="num">${fmtQty(i.qty)} ${esc(i.unit || '')}</td><td class="num">${fmtNum(i.rate)}</td><td class="num">${i.discount ? fmtNum(i.discount) : ''}</td><td class="num">${fmtNum(i.amount)}</td></tr>`).join('')}</tbody>
+            <tbody>${items.map((i) => `<tr><td>${esc(i.name)}${i.sku ? `<div class="small text-body-secondary">${esc(i.sku)}</div>` : ''}</td><td class="num">${esc(fmtSold(i))}</td><td class="num">${fmtNum(i.rate)}</td><td class="num">${i.discount ? fmtNum(i.discount) : ''}</td><td class="num">${fmtNum(i.amount)}</td></tr>`).join('')}</tbody>
           </table></div></div></div>
         ${returns.length ? `<h2 class="h6">Returns</h2><div class="list-card mb-3">${returns.map((r) => `<a class="list-row" href="#/returns/${kind}/${encodeURIComponent(r.id)}"><div class="main"><div class="title">${esc(r.number)} ${r.status === 'void' ? '<span class="badge text-bg-danger">Void</span>' : ''}</div><div class="sub">${fmtDate(r.date)} · ${r.items.length} item(s)</div></div><div class="end money">${fmtNum(r.total)}</div></a>`).join('')}</div>` : ''}
       </div>
@@ -198,7 +199,7 @@ async function renderReturn(el, kind, id) {
     <div class="card"><div class="card-body">
       <div class="mb-2">${kind === 'sale' ? 'Sale' : 'Purchase'} return against <a href="#/${K[kind].list}/${encodeURIComponent(r[K[kind].fk])}">${esc(r.docNo)}</a> · ${esc(r.partyName || '')} · ${fmtDate(r.date)}</div>
       <div class="table-responsive"><table class="table table-sm table-report"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead>
-      <tbody>${r.items.map((i) => `<tr><td>${esc(i.name)}</td><td class="num">${fmtQty(i.qty)} ${esc(i.unit || '')}</td><td class="num">${fmtNum(i.rate)}</td><td class="num">${fmtNum(i.amount)}</td></tr>`).join('')}</tbody>
+      <tbody>${r.items.map((i) => `<tr><td>${esc(i.name)}</td><td class="num">${esc(fmtSold(i))}</td><td class="num">${fmtNum(i.rate)}</td><td class="num">${fmtNum(i.amount)}</td></tr>`).join('')}</tbody>
       <tfoot><tr class="fw-bold"><td colspan="3">Total</td><td class="num">${money(r.total)}</td></tr>
       <tr><td colspan="3">Refund (${esc(r.refundAccountName)})</td><td class="num">${fmtNum(r.refund)}</td></tr></tfoot></table></div>
       <div class="small text-body-secondary">By ${esc(r.userName)} · ${fmtDateTime(r.createdAt)}${r.note ? ' · ' + esc(r.note) : ''}</div>

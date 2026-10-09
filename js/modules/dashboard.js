@@ -3,6 +3,7 @@ import * as idb from '../db/idb.js';
 import * as UI from '../core/ui.js';
 import { esc, fmtNum, fmtQty, fmtTime, fmtDate, today, localDate, round2, debounce } from '../core/utils.js';
 import { cur } from '../core/views.js';
+import { fmtStock } from '../core/cloth.js';
 import { pref } from '../core/settings.js';
 import * as Auth from '../services/auth.js';
 import * as Catalog from '../services/catalog.js';
@@ -200,7 +201,7 @@ export default {
         <div class="col-md-6"><div class="section-title mt-0"><h2>Recent sales</h2><a href="#/sales">View all</a></div>
           <div class="list-card">${f.recent.map((s) => `<a class="list-row" href="#/sales/${encodeURIComponent(s.id)}">${UI.avatar(s.customerName, 'round')}<div class="main"><div class="title">${esc(s.customerName)}</div><div class="sub">${esc(s.number)} · ${fmtTime(s.createdAt)}</div></div><div class="end"><div class="fw-bold money">${fmtNum(s.total)}</div>${s.balance > 0.004 ? '<span class="badge text-bg-warning">Credit</span>' : '<span class="badge bg-success-subtle text-success-emphasis">Paid</span>'}</div></a>`).join('') || UI.emptyState('No sales yet today', 'receipt')}</div></div>
         <div class="col-md-6"><div class="section-title mt-0"><h2>Low stock</h2><a href="#/stock">Inventory</a></div>
-          <div class="list-card">${low.slice(0, 6).map((p) => `<a class="list-row" href="#/stock/${encodeURIComponent(p.id)}">${UI.avatar(p.name)}<div class="main"><div class="title">${esc(p.name)}</div><div class="sub">Minimum ${fmtQty(p.minStock || 0)} ${esc(p.unit || '')}</div></div><div class="end"><span class="badge ${p.stock <= 0 ? 'text-bg-danger' : 'text-bg-warning'}"><i class="bi bi-${p.stock <= 0 ? 'x-octagon' : 'exclamation-triangle'} me-1"></i>${fmtQty(p.stock)} ${esc(p.unit || '')}</span></div></a>`).join('') || UI.emptyState('All stock levels are fine', 'check2-circle')}</div></div>
+          <div class="list-card">${low.slice(0, 6).map((p) => `<a class="list-row" href="#/stock/${encodeURIComponent(p.id)}">${UI.avatar(p.name)}<div class="main"><div class="title">${esc(p.name)}</div><div class="sub">Minimum ${fmtQty(p.minStock || 0)} ${esc(p.unit || '')}</div></div><div class="end"><span class="badge ${p.stock <= 0 ? 'text-bg-danger' : 'text-bg-warning'}"><i class="bi bi-${p.stock <= 0 ? 'x-octagon' : 'exclamation-triangle'} me-1"></i>${esc(fmtStock(p))}</span></div></a>`).join('') || UI.emptyState('All stock levels are fine', 'check2-circle')}</div></div>
       </div>`);
 
     UI.countUp(el, (v, node) => (node.dataset.money ? `${cur()} ${fmtNum(v)}` : String(Math.round(v))));

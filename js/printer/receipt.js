@@ -21,7 +21,7 @@ export async function buildReceipt(kind, doc) {
     const list = items.length ? items : (doc.voidedItems || []);
     list.sort((a, b) => a.line - b.line);
     m.info.push([kind === 'sale' ? 'Customer' : 'Supplier', kind === 'sale' ? doc.customerName : doc.supplierName]);
-    m.items = list.map((i) => ({ name: i.name, qty: i.qty, unit: i.unit, rate: i.rate, discount: i.discount, amount: i.amount }));
+    m.items = list.map((i) => ({ name: i.name, qty: i.sellQty ?? i.qty, unit: i.sellUnit || i.unit, rate: i.rate, discount: i.discount, amount: i.amount }));
     m.totals.push(['Subtotal', doc.subtotal]);
     if (doc.discount) m.totals.push(['Discount', -doc.discount]);
     if (doc.tax) m.totals.push([`Tax (${doc.taxRate}%)`, doc.tax]);
@@ -33,7 +33,7 @@ export async function buildReceipt(kind, doc) {
     m.payment = doc.paid ? doc.paymentAccountName : 'Credit';
   } else if (kind === 'saleReturn' || kind === 'purchaseReturn') {
     m.info.push(['Against', doc.docNo], [kind === 'saleReturn' ? 'Customer' : 'Supplier', doc.partyName || '']);
-    m.items = doc.items.map((i) => ({ name: i.name, qty: i.qty, unit: i.unit, rate: i.rate, amount: i.amount }));
+    m.items = doc.items.map((i) => ({ name: i.name, qty: i.sellQty ?? i.qty, unit: i.sellUnit || i.unit, rate: i.rate, amount: i.amount }));
     m.totals.push(['RETURN TOTAL', doc.total, true]);
     m.totals.push([kind === 'saleReturn' ? 'Refunded' : 'Refund received', doc.refund]);
     m.payment = doc.refund ? doc.refundAccountName : 'Adjusted to account';

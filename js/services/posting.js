@@ -102,15 +102,17 @@ async function paymentAccount(t, id) {
 }
 
 // ---------- document calculation (shared with the UI for live totals) ----------
+// Lines are entered in a sale unit (thaan, box or base). qty / rate are in that unit; factor converts to base units.
 export function calcDoc(items, billDiscount = 0, taxRate = 0) {
   const lines = [];
   for (const it of items) {
     const qty = round3(num(it.qty)); const rate = round2(num(it.rate)); const disc = round2(num(it.discount));
+    const factor = num(it.factor, 1) > 0 ? num(it.factor, 1) : 1;
     if (!(qty > 0)) throw new AppError(`Quantity must be greater than zero (${it.name || 'item'}).`);
     if (rate < 0) throw new AppError(`Rate cannot be negative (${it.name || 'item'}).`);
     const gross = round2(qty * rate);
     if (disc < 0 || disc > gross + EPS) throw new AppError(`Invalid discount for ${it.name || 'item'}.`);
-    lines.push({ ...it, qty, rate, discount: disc, amount: round2(gross - disc) });
+    lines.push({ ...it, qty, rate, factor, baseQty: round3(qty * factor), discount: disc, amount: round2(gross - disc) });
   }
   const subtotal = round2(lines.reduce((s, l) => s + l.amount, 0));
   const discount = round2(num(billDiscount));
@@ -123,6 +125,9 @@ export function calcDoc(items, billDiscount = 0, taxRate = 0) {
 export function previewDoc(items, billDiscount, taxRate) {
   try { return calcDoc(items, billDiscount, taxRate); } catch { return null; }
 }
+
+// Stored item fields: qty / stock / cost are in base units (metres or pieces); sellQty / sellUnit / rate are as entered.
+const soldFields = (l) => ({ qty: l.baseQty, sellQty: l.qty, sellUnit: l.sellUnit || '', unitKey: l.unitKey || 'base', factor: l.factor });
 
 // ---------- SALES ----------
 const SALE_STORES = ['sales', 'saleItems', 'products', 'stockMoves', 'entries', 'meta', 'customers', 'accounts', 'saleReturns', 'auditLog'];
@@ -176,9 +181,9 @@ export async function saveSale(input) {
       if (!p) throw new AppError('A product in the cart no longer exists.');
       if (!p.active && !editing) throw new AppError(`"${p.name}" is inactive.`);
       const item = { id: uuid(), saleId: id, saleNo: number, date: doc.date, line: i++, productId: p.id, name: p.name, sku: p.sku || '', unit: p.unit || '',
-        qty: l.qty, rate: l.rate, discount: l.discount, amount: l.amount, cost: round2(p.purchasePrice || 0) };
+        ...soldFields(l), rate: l.rate, discount: l.discount, amount: l.amount, cost: round2(p.purchasePrice || 0) };
       await t.add('saleItems', item);
-      await moveStock(t, ctx, { productId: p.id, qty: -l.qty, type: 'sale', doc, cost: item.cost });
+      await moveStock(t, ctx, { productId: p.id, qty: -l.baseQty, type: 'sale', doc, cost: item.cost });
     }
     const net = round2(calc.total - calc.tax);
     const C = customerId && partyAccount('customers', customerId);
@@ -241,10 +246,10 @@ export async function savePurchase(input) {
     for (const l of calc.lines) {
       const p = await t.get('products', l.productId);
       if (!p) throw new AppError('A product in this purchase no longer exists.');
-      const unitCost = round2((l.amount / l.qty) * factor);
+      const unitCost = round2((l.amount / l.baseQty) * factor);
       await t.add('purchaseItems', { id: uuid(), purchaseId: id, purchaseNo: number, date: doc.date, line: i++, productId: p.id, name: p.name, sku: p.sku || '', unit: p.unit || '',
-        qty: l.qty, rate: l.rate, discount: l.discount, amount: l.amount, unitCost });
-      await moveStock(t, ctx, { productId: p.id, qty: l.qty, type: 'purchase', doc, cost: unitCost });
+        ...soldFields(l), rate: l.rate, discount: l.discount, amount: l.amount, unitCost });
+      await moveStock(t, ctx, { productId: p.id, qty: l.baseQty, type: 'purchase', doc, cost: unitCost });
       if (s.updatePurchasePrice) {
         const p2 = await t.get('products', p.id);
         p2.purchasePrice = unitCost; p2.updatedAt = nowISO();
@@ -561,6 +566,15 @@ export async function saveProduct(data) {
   const wholesalePrice = round2(num(data.wholesalePrice));
   if (salePrice < 0 || purchasePrice < 0 || wholesalePrice < 0) throw new AppError('Prices cannot be negative.');
   const openingStock = round3(num(data.openingStock));
+  // Cloth fields. thaanLength / packSize are base units (metres or pieces) per thaan / box; 0 = not sold that way.
+  const thaanLength = round3(num(data.thaanLength)); const packSize = round3(num(data.packSize));
+  const thaanRate = round2(num(data.thaanRate)); const boxRate = round2(num(data.boxRate));
+  if (thaanLength < 0 || packSize < 0 || thaanRate < 0 || boxRate < 0) throw new AppError('Thaan / box sizes and rates cannot be negative.');
+  const defaultUnit = ['base', 'thaan', 'pack'].includes(data.defaultUnit) ? data.defaultUnit : 'base';
+  const cloth = {
+    design: clean(data.design, 60), color: clean(data.color, 60), fabric: clean(data.fabric, 60), width: clean(data.width, 30),
+    thaanLength, packSize, packName: clean(data.packName, 20) || 'box', thaanRate, boxRate, defaultUnit,
+  };
   const ctx = newCtx();
   const rec = await idb.write(['products', 'stockMoves', 'auditLog'], async (t) => {
     if (barcode) {
@@ -576,7 +590,7 @@ export async function saveProduct(data) {
     const now = nowISO();
     const trackStock = data.trackStock !== false;
     const p = { ...(old || { createdAt: now, stock: 0 }), id, name, nameLc: lc(name), sku, barcode, categoryId: data.categoryId || '', unit: clean(data.unit, 20) || 'pcs',
-      purchasePrice, salePrice, wholesalePrice, minStock: round3(num(data.minStock)), openingStock: trackStock ? openingStock : 0, trackStock,
+      ...cloth, purchasePrice, salePrice, wholesalePrice, minStock: round3(num(data.minStock)), openingStock: trackStock ? openingStock : 0, trackStock,
       image: data.image === undefined ? (old?.image || '') : data.image, active: data.active === false ? 0 : 1, updatedAt: now };
     const openRef = 'open:' + id;
     const [openMove] = await t.getAllByIndex('stockMoves', 'refId', openRef);

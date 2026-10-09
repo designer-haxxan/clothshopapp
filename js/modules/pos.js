@@ -10,6 +10,8 @@ import * as Posting from '../services/posting.js';
 import * as Printer from '../printer/printer.js';
 import * as Scanner from '../scanner/scanner.js';
 import { partyPicker } from './parties.js';
+import { unitOptions, unitOption, defaultUnitKey, unitRate, fmtStock } from '../core/cloth.js';
+import { t } from '../i18n/i18n.js';
 
 const $ = window.jQuery;
 let st; let $root; let detachWedge = null; let payAccounts = [];
@@ -89,13 +91,17 @@ function renderLines() {
   } else {
     $l.html(st.lines.map((l, i) => {
       const p = Catalog.product(l.productId);
-      const low = isSale() && !st.editId && p && p.trackStock !== false && !s.allowNegativeStock && l.qty > (p.stock || 0);
+      const factor = l.factor || 1;
+      const low = isSale() && !st.editId && p && p.trackStock !== false && !s.allowNegativeStock && l.qty * factor > (p.stock || 0);
       const amt = round2(l.qty * l.rate - (l.discount || 0));
+      const sellUnit = l.sellUnit || l.unit || '';
+      const multi = p && unitOptions(p).length > 1;
       return `<div class="cart-line" data-i="${i}">
         <div class="info btn-line" role="button" tabindex="0">
           <div class="name">${esc(l.name)}</div>
-          <div class="meta">${fmtNum(l.rate)}${l.discount ? ` · disc ${fmtNum(l.discount)}` : ''}${p && p.trackStock !== false ? ` · <span class="${low ? 'text-danger fw-semibold' : ''}">stock ${fmtQty(p.stock)}</span>` : ''}</div>
+          <div class="meta">${fmtNum(l.rate)} / ${esc(t(sellUnit))}${l.discount ? ` · disc ${fmtNum(l.discount)}` : ''}${p && p.trackStock !== false ? ` · <span class="${low ? 'text-danger fw-semibold' : ''}">${esc(t('Stock'))} ${esc(fmtStock(p))}</span>` : ''}</div>
         </div>
+        <button class="unit-chip${multi ? '' : ' d-none'}" data-i="${i}" title="${esc(t('Unit'))}" aria-label="${esc(t('Unit'))}">${esc(t(sellUnit))}</button>
         <div class="qty-ctl"><button class="btn-dec" aria-label="Decrease">−</button><input class="qty-in" inputmode="decimal" value="${fmtQty(l.qty).replace(/,/g, '')}" aria-label="Quantity"><button class="btn-inc" aria-label="Increase">+</button></div>
         <div class="amt money">${fmtNum(amt)}</div>
       </div>`;
@@ -105,9 +111,9 @@ function renderLines() {
 }
 
 function renderTotals() {
-  const t = totals();
-  $root.find('.total').text(`${cur()} ${fmtNum(t.total)}`);
-  $root.find('.footer-sub').html(`<span>${st.lines.length} item(s) · qty ${fmtQty(t.qtyTotal)}</span><span>${t.discount ? `Disc ${fmtNum(t.discount)} · ` : ''}${t.tax ? `Tax ${fmtNum(t.tax)}` : ''}</span>`);
+  const tot = totals();
+  $root.find('.total').text(`${cur()} ${fmtNum(tot.total)}`);
+  $root.find('.footer-sub').html(`<span>${st.lines.length} item(s)</span><span>${tot.discount ? `Disc ${fmtNum(tot.discount)} · ` : ''}${tot.tax ? `Tax ${fmtNum(tot.tax)}` : ''}</span>`);
   $root.find('.btn-pay').prop('disabled', !st.lines.length);
   $root.find('.party-name').text(st.partyName || (isSale() ? 'Walk-in Customer' : 'Select supplier'));
   $root.find('.pm-label').text(st.priceMode === 'retail' ? 'wholesale' : 'retail');
@@ -127,36 +133,45 @@ function renderGrid() {
   const list = Catalog.searchProducts(q, { limit: 120, categoryId: browseCat });
   const cats = Catalog.allCategories();
   $root.find('.cat-chips').html(`<span class="chip ${!browseCat ? 'active' : ''}" data-cat="">All</span>` + cats.map((c) => `<span class="chip ${browseCat === c.id ? 'active' : ''}" data-cat="${esc(c.id)}">${esc(c.name)}</span>`).join(''));
-  $root.find('.product-grid').html(list.length ? list.map((p) => `
+  $root.find('.product-grid').html(list.length ? list.map((p) => {
+    const dk = defaultUnitKey(p);
+    return `
     <button class="product-tile" data-id="${esc(p.id)}">
       ${p.image ? `<img src="${p.image}" alt="" loading="lazy">` : `<div class="ph tint-${UI.tintFor(p.name)}">${esc(UI.initials(p.name))}</div>`}
       <div class="n">${esc(p.name)}</div>
-      <div class="p">${fmtNum(priceOf(p))}</div>
-      ${p.trackStock !== false ? `<div class="s">Stock: ${fmtQty(p.stock)}</div>` : ''}
-    </button>`).join('') : UI.emptyState('No products', 'box'));
+      ${p.design || p.color ? `<div class="d">${esc([p.design, p.color].filter(Boolean).join(' · '))}</div>` : ''}
+      <div class="p">${fmtNum(priceOf(p))}<span class="per"> / ${esc(t(unitOption(p, dk).label))}</span></div>
+      ${p.trackStock !== false ? `<div class="s">${esc(t('Stock'))}: ${esc(fmtStock(p))}</div>` : ''}
+    </button>`;
+  }).join('') : UI.emptyState('No products', 'box'));
 }
 
 // ---------- cart operations ----------
+// Rate per sale unit on this screen: retail / wholesale for sales, cost for purchases.
+function rateFor(p, key) {
+  if (!isSale()) return unitRate(p, key, { cost: true });
+  return unitRate(p, key, { wholesale: st.priceMode === 'wholesale' });
+}
 function priceOf(p) {
-  if (!isSale()) return p.purchasePrice || 0;
-  return st.priceMode === 'wholesale' && p.wholesalePrice ? p.wholesalePrice : p.salePrice || 0;
+  return rateFor(p, defaultUnitKey(p));
 }
 
-function addProduct(p, qty = 1) {
+function addProduct(p, qty = 1, key = defaultUnitKey(p)) {
   if (!p) return;
   if (!p.active) { UI.toast(`"${p.name}" is inactive`, 'warning'); return; }
-  const i = st.lines.findIndex((l) => l.productId === p.id && !l.discount);
+  const o = unitOption(p, key);
+  const i = st.lines.findIndex((l) => l.productId === p.id && (l.unitKey || 'base') === o.key && !l.discount);
   if (i >= 0) {
     st.lines[i].qty = round3(st.lines[i].qty + qty);
     const [line] = st.lines.splice(i, 1); st.lines.unshift(line);
   } else {
-    st.lines.unshift({ productId: p.id, name: p.name, unit: p.unit, qty, rate: priceOf(p), discount: 0 });
+    st.lines.unshift({ productId: p.id, name: p.name, unit: p.unit, unitKey: o.key, sellUnit: o.label, factor: o.factor, qty, rate: rateFor(p, o.key), discount: 0 });
   }
   renderLines();
   $root.find('.cart-line').first().addClass('bg-success-subtle');
   setTimeout(() => $root.find('.cart-line').first().removeClass('bg-success-subtle'), 400);
   const s = getSettings();
-  if (isSale() && !st.editId && p.trackStock !== false && !s.allowNegativeStock && st.lines[0].qty > (p.stock || 0)) UI.toast(`Only ${fmtQty(p.stock)} in stock for ${p.name}`, 'warning', 2500);
+  if (isSale() && !st.editId && p.trackStock !== false && !s.allowNegativeStock && st.lines[0].qty * o.factor > (p.stock || 0)) UI.toast(`Only ${fmtStock(p)} in stock for ${p.name}`, 'warning', 2500);
 }
 
 function addByCode(code) {
@@ -176,28 +191,39 @@ const doSearch = debounce(() => {
   $root.find('.search-results').removeClass('d-none').html(results.length ? results.map((p, i) => `
     <button class="list-row ${i === 0 ? 'bg-body-secondary' : ''}" data-i="${i}">
       <div class="main"><div class="title">${esc(p.name)}</div><div class="sub">${esc([p.sku, p.barcode].filter(Boolean).join(' · '))}</div></div>
-      <div class="end"><div class="fw-semibold money">${fmtNum(priceOf(p))}</div>${p.trackStock !== false ? `<div class="sub">stock ${fmtQty(p.stock)}</div>` : ''}</div>
+      <div class="end"><div class="fw-semibold money">${fmtNum(priceOf(p))} <span class="small text-body-secondary">/ ${esc(t(unitOption(p, defaultUnitKey(p)).label))}</span></div>${p.trackStock !== false ? `<div class="sub">${esc(t('Stock'))} ${esc(fmtStock(p))}</div>` : ''}</div>
     </button>`).join('') : `<div class="p-3 text-body-secondary small">No products match "${esc(q)}".${Auth.can('product.edit') ? ' <a href="#" class="quick-add-link">Add new product</a>' : ''}</div>`);
 }, 120);
 
 async function editLine(i) {
   const l = st.lines[i];
   const p = Catalog.product(l.productId);
+  const key = l.unitKey || 'base';
+  const opts = p ? unitOptions(p) : [{ key, label: l.sellUnit || l.unit || '', factor: l.factor || 1 }];
   const r = await UI.formModal({
     title: l.name, submitLabel: 'Update',
     body: `<div class="row g-2">
-      <div class="col-4"><label class="form-label">Quantity</label><input name="qty" class="form-control form-control-lg" inputmode="decimal" value="${l.qty}"></div>
-      <div class="col-4"><label class="form-label">${isSale() ? 'Rate' : 'Cost rate'}</label><input name="rate" class="form-control form-control-lg" inputmode="decimal" value="${l.rate}"></div>
-      <div class="col-4"><label class="form-label">Discount</label><input name="discount" class="form-control form-control-lg" inputmode="decimal" value="${l.discount || 0}"></div>
-      ${p ? `<div class="col-12 small text-body-secondary">Sale ${fmtNum(p.salePrice)} · Wholesale ${fmtNum(p.wholesalePrice)} · Cost ${fmtNum(p.purchasePrice)}${p.trackStock !== false ? ` · Stock ${fmtQty(p.stock)}` : ''}</div>` : ''}
-      <div class="col-12"><button type="button" class="btn btn-outline-danger w-100 btn-remove-line"><i class="bi bi-trash me-1"></i>Remove item</button></div></div>`,
-    onShown: ($m) => { $m.find('[name=qty]').trigger('select'); $m.find('.btn-remove-line').on('click', () => { st.lines.splice(i, 1); renderLines(); $m.find('[data-bs-dismiss=modal]').first().trigger('click'); }); },
+      ${opts.length > 1
+        ? `<div class="col-6 col-md-3"><label class="form-label">${esc(t('Unit'))}</label><select name="unitKey" class="form-select form-select-lg">${opts.map((o) => `<option value="${esc(o.key)}" ${o.key === key ? 'selected' : ''}>${esc(t(o.label))}</option>`).join('')}</select></div>`
+        : `<input type="hidden" name="unitKey" value="${esc(opts[0].key)}">`}
+      <div class="col-6 col-md-3"><label class="form-label">${esc(t('Quantity'))}</label><input name="qty" class="form-control form-control-lg" inputmode="decimal" value="${l.qty}"></div>
+      <div class="col-6 col-md-3"><label class="form-label">${esc(t(isSale() ? 'Rate' : 'Cost rate'))}</label><input name="rate" class="form-control form-control-lg" inputmode="decimal" value="${l.rate}"></div>
+      <div class="col-6 col-md-3"><label class="form-label">${esc(t('Discount'))}</label><input name="discount" class="form-control form-control-lg" inputmode="decimal" value="${l.discount || 0}"></div>
+      ${p ? `<div class="col-12 small text-body-secondary unit-note">${opts.filter((o) => o.key !== 'base').map((o) => `1 ${esc(t(o.label))} = ${fmtQty(o.factor)} ${esc(t(p.unit))}`).join(' · ')}${opts.length > 1 ? '<br>' : ''}${isSale() ? 'Sale' : 'Cost'} ${fmtNum(isSale() ? rateFor(p, key) : p.purchasePrice)} · ${esc(t('Stock'))} ${p.trackStock !== false ? esc(fmtStock(p)) : '—'}</div>` : ''}
+      <div class="col-12"><button type="button" class="btn btn-outline-danger w-100 btn-remove-line"><i class="bi bi-trash me-1"></i>${esc(t('Remove item'))}</button></div></div>`,
+    onShown: ($m) => {
+      $m.find('[name=qty]').trigger('select');
+      // Changing the unit moves the rate to that unit's price.
+      $m.on('change', '[name=unitKey]', () => { if (p) $m.find('[name=rate]').val(rateFor(p, $m.find('[name=unitKey]').val())); });
+      $m.find('.btn-remove-line').on('click', () => { st.lines.splice(i, 1); renderLines(); $m.find('[data-bs-dismiss=modal]').first().trigger('click'); });
+    },
     onSubmit: (v) => {
       const qty = round3(num(v.qty)); const rate = round2(num(v.rate)); const discount = round2(num(v.discount));
       if (!(qty > 0)) throw new AppError('Quantity must be greater than zero.');
       if (rate < 0) throw new AppError('Rate cannot be negative.');
       if (discount < 0 || discount > qty * rate) throw new AppError('Discount must be between 0 and the line amount.');
-      return { qty, rate, discount };
+      const o = (p ? unitOption(p, v.unitKey) : opts[0]);
+      return { qty, rate, discount, unitKey: o.key, sellUnit: o.label, factor: o.factor };
     },
   });
   if (r && st.lines[i] === l) { Object.assign(l, r); renderLines(); }
@@ -250,6 +276,8 @@ async function checkout() {
   });
   const $m = m.$el;
   let tenderedTouched = st.tendered !== null && st.editId;
+  // Re-opening a saved sale for editing: show the amount it was paid with (otherwise the field starts empty).
+  if (tenderedTouched) $m.find('[name=tendered]').val(st.tendered ?? '');
   const calc = () => Posting.previewDoc(st.lines, num($m.find('[name=discount]').val()), taxRate());
   const update = () => {
     const c = calc();
@@ -392,7 +420,8 @@ export default {
       st = { ...fresh(mode), id: doc.id, editId: doc.id, editNumber: doc.number, date: doc.date, partyId: doc.customerId || doc.supplierId || null,
         partyName: doc.customerId ? doc.customerName : doc.supplierId ? doc.supplierName : '', discount: doc.discount, note: doc.note || '', refNo: doc.refNo || '',
         tendered: mode === 'sale' ? doc.tendered : doc.paid, taxRate: doc.taxRate || 0, payAccount: doc.paymentAccountId,
-        lines: items.map((i) => ({ productId: i.productId, name: i.name, unit: i.unit, qty: i.qty, rate: i.rate, discount: i.discount })) };
+        lines: items.map((i) => ({ productId: i.productId, name: i.name, unit: i.unit, unitKey: i.unitKey || 'base', sellUnit: i.sellUnit || i.unit, factor: i.factor || 1,
+          qty: i.sellQty ?? i.qty, rate: i.rate, discount: i.discount })) };
       setTitle(`Edit ${doc.number}`);
     } else {
       st = fresh(mode);
@@ -435,6 +464,16 @@ export default {
       renderLines();
     });
     $root.on('focus', '.qty-in', function () { this.select(); });
+    // Tapping the unit chip cycles through the product's sale units (metre → thaan → box) and re-prices the line.
+    $root.on('click', '.unit-chip', function () {
+      const i = +this.dataset.i; const l = st.lines[i]; const p = l && Catalog.product(l.productId);
+      if (!p) return;
+      const opts = unitOptions(p);
+      const idx = opts.findIndex((o) => o.key === (l.unitKey || 'base'));
+      const o = opts[(idx + 1) % opts.length];
+      Object.assign(l, { unitKey: o.key, sellUnit: o.label, factor: o.factor, rate: rateFor(p, o.key) });
+      renderLines();
+    });
     $root.on('click keydown', '.btn-line', function (e) { if (e.type === 'keydown' && e.key !== 'Enter') return; editLine(+$(this).closest('.cart-line').data('i')); });
     $root.on('click', '.btn-pay', checkout);
     $root.on('click', '.btn-party', choosePartyFn);
